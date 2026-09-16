@@ -1,0 +1,30 @@
+# ============================================================================
+# CONFIGURACIÓN — mismas variables de entorno que shipments (puedes apuntar
+# al mismo proyecto Neon; las tablas tienen nombres distintos, no chocan)
+#   SPRING_DATASOURCE_URL       jdbc:postgresql://<host>/<db>?sslmode=require
+#   SPRING_DATASOURCE_USERNAME  usuario de Neon
+#   SPRING_DATASOURCE_PASSWORD  password de Neon
+#   SERVER_PORT                 puerto de este servicio (default 8083)
+# ============================================================================
+
+server:
+  port: ${SERVER_PORT:8083}
+
+spring:
+  application:
+    name: ms-rutaexpress-catalog
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    com.rutaexpress: DEBUG
