@@ -5,8 +5,9 @@
 #   SPRING_DATASOURCE_USERNAME  usuario de Neon
 #   SPRING_DATASOURCE_PASSWORD  password de Neon
 #   SERVER_PORT                 puerto de este servicio (default 8083)
+#   RABBITMQ_HOST / RABBITMQ_PORT / RABBITMQ_USER / RABBITMQ_PASSWORD
+#                               conexión al clúster RabbitMQ (default localhost:5672)
 # ============================================================================
-
 server:
   port: ${SERVER_PORT:8083}
 
@@ -24,6 +25,44 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:rutaexpress}
+    password: ${RABBITMQ_PASSWORD:}
+    listener:
+      simple:
+        acknowledge-mode: manual        # ACK/NACK explícito en cada listener
+        prefetch: 10                    # QoS: máx. 10 mensajes sin confirmar por consumidor
+        default-requeue-rejected: false # un rechazo nunca vuelve a la cola: va a la DLQ
+
+# ----------------------------------------------------------------------------
+# MENSAJERÍA — único lugar donde se definen nombres de exchanges, colas,
+# routing keys y políticas de retención. Ningún servicio ni controlador
+# escribe estos valores a mano (ver config/RabbitTopologyConfig).
+# Los nombres deben ser idénticos en shipments.
+# ----------------------------------------------------------------------------
+rutaexpress:
+  mensajeria:
+    exchanges:
+      comandos: rutaexpress.commands    # direct
+      eventos: rutaexpress.events       # topic
+      dlx: rutaexpress.dlx              # direct, destino de los mensajes muertos
+    comandos:
+      cola: q.envio.comandos
+      routing-key: envio.asignar-vehiculo
+      dlq: q.envio.comandos.dlq
+      dlq-routing-key: envio.comandos.dlq
+      ttl-ms: 300000                    # un comando no atendido en 5 min expira (va a la DLQ)
+      max-length: 10000                 # al llegar a 10.000, el mensaje más antiguo va a la DLQ
+    eventos:
+      vehiculo-asignado: envio.vehiculo.asignado
+    reintentos:
+      max-intentos: 3                   # intentos totales ante un error recuperable
+      espera-ms: 500                    # espera base entre intentos (crece linealmente)
+    dlq:
+      ttl-ms: 604800000                 # las DLQ conservan 7 días
+      max-length: 10000                 # y nunca más de 10.000 mensajes
 
 logging:
   level:
